@@ -64,11 +64,11 @@ namespace PeterHan.PLib.Options {
 		/// <param name="title">The field title to display.</param>
 		/// <param name="tooltip">The tool tip for the field.</param>
 		/// <param name="category">The category to use, or null for the default category.</param>
-		public OptionAttribute(string title, string tooltip = null, string category = null) {
+		public OptionAttribute(string title, string tooltip = null, string category = null, string format = null) {
 			if (string.IsNullOrEmpty(title))
 				throw new ArgumentNullException(nameof(title));
 			Category = category;
-			Format = null;
+			Format = format;
 			Title = title;
 			Tooltip = tooltip;
 		}

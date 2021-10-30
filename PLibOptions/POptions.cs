@@ -18,6 +18,7 @@
 
 using HarmonyLib;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using PeterHan.PLib.Core;
 using PeterHan.PLib.UI;
 using System;
@@ -114,9 +115,8 @@ namespace PeterHan.PLib.Options {
 		/// <returns>The path to the configuration file that will be used by PLib for that
 		/// mod's config.</returns>
 		private static string GetConfigPath(ConfigFileAttribute attr, Assembly modAssembly) {
-			string path, name = modAssembly.GetNameSafe();
-			path = (name != null && (attr?.UseSharedConfigLocation == true)) ?
-				Path.Combine(KMod.Manager.GetDirectory(), SHARED_CONFIG_FOLDER, name) :
+			string path = attr?.UseSharedConfigLocation == true ?
+				KMod.Manager.GetDirectory() :
 				PUtil.GetModPath(modAssembly);
 			return Path.Combine(path, attr?.ConfigFileName ?? CONFIG_FILE_NAME);
 		}
@@ -144,6 +144,8 @@ namespace PeterHan.PLib.Options {
 			try {
 				using (var jr = new JsonTextReader(File.OpenText(path))) {
 					var serializer = new JsonSerializer { MaxDepth = MAX_SERIALIZATION_DEPTH };
+					var contractorType = optionsType.GetCustomAttribute<ConfigFileAttribute>()?.ContractResolver;
+					serializer.ContractResolver = contractorType == null ? null : Activator.CreateInstance(contractorType) as IContractResolver;
 					// Deserialize from stream avoids reading file text into memory
 					options = serializer.Deserialize(jr, optionsType);
 				}
@@ -204,10 +206,11 @@ namespace PeterHan.PLib.Options {
 					// SharedConfigLocation
 					Directory.CreateDirectory(Path.GetDirectoryName(path));
 					using (var jw = new JsonTextWriter(File.CreateText(path))) {
-						var serializer = new JsonSerializer {
-							MaxDepth = MAX_SERIALIZATION_DEPTH
-						};
+						var serializer = new JsonSerializer { MaxDepth = MAX_SERIALIZATION_DEPTH };
+						var contractorType = settings.GetType().GetCustomAttribute<ConfigFileAttribute>()?.ContractResolver;
+						serializer.ContractResolver = contractorType == null ? null : Activator.CreateInstance(contractorType) as IContractResolver;
 						serializer.Formatting = indent ? Formatting.Indented : Formatting.None;
+						serializer.NullValueHandling = NullValueHandling.Ignore;
 						// Serialize from stream avoids creating file text in memory
 						serializer.Serialize(jw, settings);
 					}

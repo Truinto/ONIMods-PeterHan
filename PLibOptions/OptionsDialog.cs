@@ -30,7 +30,7 @@ namespace PeterHan.PLib.Options {
 	/// <summary>
 	/// A dialog for handling mod options events.
 	/// </summary>
-	internal sealed class OptionsDialog {
+	public sealed class OptionsDialog {
 		/// <summary>
 		/// The color of option category titles.
 		/// </summary>
@@ -259,7 +259,7 @@ namespace PeterHan.PLib.Options {
 		/// Checks the mod config class for the [RestartRequired] attribute, and brings up a
 		/// restart dialog if necessary.
 		/// </summary>
-		private void CheckForRestart() {
+		public void CheckForRestart() {
 			if (options != null && options.GetType().
 					GetCustomAttribute<RestartRequiredAttribute>() != null)
 				// Prompt user to restart
@@ -270,7 +270,7 @@ namespace PeterHan.PLib.Options {
 		/// <summary>
 		/// Closes the current dialog.
 		/// </summary>
-		private void CloseDialog() {
+		public void CloseDialog() {
 			if (dialog != null) {
 				dialog.Deactivate();
 				// dialog's game object is destroyed by Deactivate()
@@ -391,10 +391,14 @@ namespace PeterHan.PLib.Options {
 			UpdateOptions();
 		}
 
+		/// <summary>Currently open dialog.</summary>
+		public static OptionsDialog Last;
+
 		/// <summary>
 		/// Triggered when the Mod Options button is clicked.
 		/// </summary>
 		public void ShowDialog() {
+			Last = this;
 			string title;
 			if (string.IsNullOrEmpty(displayInfo.Title))
 				title = PLibStrings.BUTTON_OPTIONS;

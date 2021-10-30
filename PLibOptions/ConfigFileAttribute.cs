@@ -17,6 +17,7 @@
  */
 
 using System;
+using Newtonsoft.Json.Serialization;
 
 namespace PeterHan.PLib.Options {
 	/// <summary>
@@ -45,11 +46,18 @@ namespace PeterHan.PLib.Options {
 		/// </summary>
 		public bool UseSharedConfigLocation { get; }
 
+		/// <summary>
+		/// Json Resolver. Can be used to rename property names.
+		/// </summary>
+		public Type ContractResolver { get; }
+
 		public ConfigFileAttribute(string FileName = POptions.CONFIG_FILE_NAME,
-				bool IndentOutput = false, bool SharedConfigLocation = false) {
-			ConfigFileName = FileName;
+				bool IndentOutput = false, bool SharedConfigLocation = false,
+				Type ContractResolver = null) {
+			this.ConfigFileName = FileName;
 			this.IndentOutput = IndentOutput;
-			UseSharedConfigLocation = SharedConfigLocation;
+			this.UseSharedConfigLocation = SharedConfigLocation;
+			this.ContractResolver = ContractResolver;
 		}
 
 		public override string ToString() {
