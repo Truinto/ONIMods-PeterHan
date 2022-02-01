@@ -85,9 +85,20 @@ namespace PeterHan.PLib.Options {
 		/// <param name="optionsType">The options type stored in the config file.</param>
 		/// <returns>The path to the configuration file that will be used by PLib for that
 		/// mod's config.</returns>
-		public static string GetConfigFilePath(Type optionsType) {
-			return GetConfigPath(optionsType.GetCustomAttribute<ConfigFileAttribute>(),
-				optionsType.Assembly);
+		public static string GetConfigFilePath(Type optionsType)
+		{
+            if (typeof(IManualConfig).IsAssignableFrom(optionsType))
+            {
+                var manual = Activator.CreateInstance(optionsType) as IManualConfig;
+                return manual.GetConfigPath();
+            }
+
+            ConfigFileAttribute attr = optionsType.GetCustomAttribute<ConfigFileAttribute>();
+            Assembly modAssembly = optionsType.Assembly;
+			string path = attr?.UseSharedConfigLocation == true ?
+				KMod.Manager.GetDirectory() :
+				PUtil.GetModPath(modAssembly);
+			return Path.Combine(path, attr?.ConfigFileName ?? CONFIG_FILE_NAME);
 		}
 
 		/// <summary>
@@ -108,20 +119,6 @@ namespace PeterHan.PLib.Options {
 		}
 
 		/// <summary>
-		/// Retrieves the configuration file path used by PLib Options for a specified type.
-		/// </summary>
-		/// <param name="attr">The config file attribute for that type.</param>
-		/// <param name="modAssembly">The assembly to use for determining the path.</param>
-		/// <returns>The path to the configuration file that will be used by PLib for that
-		/// mod's config.</returns>
-		private static string GetConfigPath(ConfigFileAttribute attr, Assembly modAssembly) {
-			string path = attr?.UseSharedConfigLocation == true ?
-				KMod.Manager.GetDirectory() :
-				PUtil.GetModPath(modAssembly);
-			return Path.Combine(path, attr?.ConfigFileName ?? CONFIG_FILE_NAME);
-		}
-
-		/// <summary>
 		/// Reads a mod's settings from its configuration file. The assembly defining T is used
 		/// to resolve the proper settings folder.
 		/// </summary>
@@ -129,8 +126,7 @@ namespace PeterHan.PLib.Options {
 		/// <returns>The settings read, or null if they could not be read (e.g. newly installed).</returns>
 		public static T ReadSettings<T>() where T : class {
 			var type = typeof(T);
-			return ReadSettings(GetConfigPath(type.GetCustomAttribute<ConfigFileAttribute>(),
-				type.Assembly), type) as T;
+			return ReadSettings(GetConfigFilePath(type), type) as T;
 		}
 
 		/// <summary>
@@ -140,6 +136,11 @@ namespace PeterHan.PLib.Options {
 		/// <param name="optionsType">The options type.</param>
 		/// <returns>The settings read, or null if they could not be read (e.g. newly installed)</returns>
 		internal static object ReadSettings(string path, Type optionsType) {
+			if (typeof(IManualConfig).IsAssignableFrom(optionsType)) {
+				var manual = Activator.CreateInstance(optionsType) as IManualConfig;
+				return manual.ReadSettings();
+			}
+
 			object options = null;
 			try {
 				using (var jr = new JsonTextReader(File.OpenText(path))) {
@@ -190,7 +191,7 @@ namespace PeterHan.PLib.Options {
 		/// <param name="settings">The settings to write.</param>
 		public static void WriteSettings<T>(T settings) where T : class {
 			var attr = typeof(T).GetCustomAttribute<ConfigFileAttribute>();
-			WriteSettings(settings, GetConfigPath(attr, typeof(T).Assembly), attr?.
+			WriteSettings(settings, GetConfigFilePath(typeof(T)), attr?.
 				IndentOutput ?? false);
 		}
 
@@ -201,6 +202,11 @@ namespace PeterHan.PLib.Options {
 		/// <param name="path">The path to the settings file.</param>
 		/// <param name="indent">true to indent the output, or false to leave it in one line.</param>
 		internal static void WriteSettings(object settings, string path, bool indent = false) {
+			if (settings is IManualConfig manual) {
+				manual.WriteSettings(settings);
+				return;
+            }
+
 			if (settings != null)
 				try {
 					// SharedConfigLocation
